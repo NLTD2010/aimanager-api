@@ -1,0 +1,809 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AImanager API Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f1722;
+      --bg-soft: #162235;
+      --card: rgba(11, 20, 35, 0.78);
+      --card-strong: rgba(18, 30, 50, 0.92);
+      --line: #355174;
+      --text: #ecf3ff;
+      --text-muted: #9bb4d5;
+      --accent: #40c7b2;
+      --accent-2: #f6b84d;
+      --danger: #ef6f6c;
+      --success: #71d870;
+      --mono: "IBM Plex Mono", "Courier New", monospace;
+      --sans: "Space Grotesk", "Segoe UI", sans-serif;
+      --shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at 5% 10%, rgba(64, 199, 178, 0.2), transparent 42%),
+        radial-gradient(circle at 90% 15%, rgba(246, 184, 77, 0.25), transparent 35%),
+        radial-gradient(circle at 80% 90%, rgba(113, 216, 112, 0.12), transparent 38%),
+        linear-gradient(145deg, #0b1220 0%, #102034 48%, #0b1220 100%);
+      padding: 24px;
+    }
+
+    .frame {
+      max-width: 1160px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero {
+      padding: 28px;
+      border: 1px solid rgba(155, 180, 213, 0.16);
+      border-radius: 18px;
+      background: linear-gradient(150deg, rgba(16, 31, 52, 0.96), rgba(10, 21, 36, 0.88));
+      box-shadow: var(--shadow);
+      opacity: 0;
+      transform: translateY(12px);
+      animation: rise 0.55s ease forwards;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 2.8vw, 2.35rem);
+      letter-spacing: 0.3px;
+    }
+
+    .sub {
+      margin: 10px 0 0;
+      color: var(--text-muted);
+      line-height: 1.45;
+      max-width: 80ch;
+    }
+
+    .links {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .link {
+      color: #c8ffef;
+      text-decoration: none;
+      border: 1px solid rgba(64, 199, 178, 0.4);
+      border-radius: 999px;
+      padding: 7px 13px;
+      font-size: 0.9rem;
+    }
+
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .step {
+      position: relative;
+      border: 1px solid rgba(155, 180, 213, 0.2);
+      border-radius: 14px;
+      background: rgba(12, 21, 36, 0.82);
+      padding: 12px;
+      overflow: hidden;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: rise 0.45s ease forwards;
+    }
+
+    .step:nth-child(2) { animation-delay: 0.08s; }
+    .step:nth-child(3) { animation-delay: 0.14s; }
+    .step:nth-child(4) { animation-delay: 0.2s; }
+    .step:nth-child(5) { animation-delay: 0.26s; }
+
+    .step::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      right: -8px;
+      width: 14px;
+      height: 14px;
+      border-right: 2px solid var(--line);
+      border-bottom: 2px solid var(--line);
+      transform: translateY(-50%) rotate(-45deg);
+    }
+
+    .step:last-child::after {
+      display: none;
+    }
+
+    .step-id {
+      font-family: var(--mono);
+      color: var(--accent-2);
+      font-size: 0.8rem;
+    }
+
+    .step-title {
+      margin: 6px 0 5px;
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .step-desc {
+      margin: 0;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+
+    .step.active {
+      border-color: rgba(64, 199, 178, 0.6);
+      box-shadow: 0 0 0 1px rgba(64, 199, 178, 0.25), 0 12px 24px rgba(3, 9, 18, 0.28);
+    }
+
+    .state {
+      border: 1px solid rgba(155, 180, 213, 0.2);
+      border-radius: 16px;
+      background: var(--card);
+      padding: 14px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .pill {
+      border: 1px solid rgba(155, 180, 213, 0.22);
+      border-radius: 12px;
+      background: rgba(18, 30, 50, 0.9);
+      padding: 10px;
+      min-height: 74px;
+    }
+
+    .pill-label {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .pill-value {
+      margin-top: 6px;
+      font-size: 0.92rem;
+      word-break: break-all;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .card {
+      border: 1px solid rgba(155, 180, 213, 0.22);
+      border-radius: 16px;
+      background: var(--card-strong);
+      padding: 14px;
+      box-shadow: inset 0 0 0 1px rgba(8, 18, 30, 0.8);
+      opacity: 0;
+      transform: translateY(10px);
+      animation: rise 0.4s ease forwards;
+    }
+
+    .card:nth-child(2) { animation-delay: 0.07s; }
+    .card:nth-child(3) { animation-delay: 0.12s; }
+    .card:nth-child(4) { animation-delay: 0.16s; }
+    .card:nth-child(5) { animation-delay: 0.2s; }
+    .card:nth-child(6) { animation-delay: 0.24s; }
+
+    .card h2 {
+      margin: 0;
+      font-size: 1.05rem;
+    }
+
+    .card p {
+      margin: 8px 0 12px;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      line-height: 1.3;
+    }
+
+    form {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.82rem;
+      color: #d4e5fb;
+      display: grid;
+      gap: 4px;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid #365271;
+      background: #10233b;
+      border-radius: 10px;
+      color: var(--text);
+      padding: 9px;
+      font-family: var(--sans);
+      font-size: 0.93rem;
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .row {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    button {
+      border: 0;
+      border-radius: 11px;
+      background: linear-gradient(145deg, #44c9b7, #3ea7de);
+      color: #071421;
+      font-weight: 700;
+      padding: 10px;
+      cursor: pointer;
+      transition: transform 0.12s ease, filter 0.12s ease;
+      font-family: var(--sans);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .secondary {
+      background: linear-gradient(145deg, #f6b84d, #ff9f58);
+    }
+
+    .log {
+      margin-top: 10px;
+      border: 1px dashed rgba(155, 180, 213, 0.28);
+      border-radius: 12px;
+      background: rgba(8, 17, 30, 0.82);
+      overflow: hidden;
+    }
+
+    .log-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      background: rgba(18, 29, 48, 0.95);
+      color: #d2ddf0;
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .status.bad {
+      color: var(--danger);
+    }
+
+    pre {
+      margin: 0;
+      padding: 10px;
+      color: #d4e6ff;
+      font-size: 0.78rem;
+      line-height: 1.45;
+      font-family: var(--mono);
+      max-height: 220px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .footer-log {
+      border: 1px solid rgba(155, 180, 213, 0.2);
+      border-radius: 16px;
+      background: rgba(9, 18, 31, 0.9);
+      padding: 12px;
+    }
+
+    .footer-log h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .timeline {
+      max-height: 180px;
+      overflow: auto;
+      padding-right: 2px;
+      font-size: 0.85rem;
+      color: #d7e7ff;
+    }
+
+    .event {
+      border-left: 2px solid var(--line);
+      padding: 6px 0 6px 9px;
+      margin-bottom: 3px;
+    }
+
+    .event span {
+      color: var(--text-muted);
+      font-family: var(--mono);
+      margin-right: 5px;
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .flow {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .step:nth-child(3)::after {
+        display: none;
+      }
+
+      .state {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 14px;
+      }
+
+      .flow,
+      .grid,
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .step::after {
+        display: none;
+      }
+
+      .hero {
+        padding: 18px;
+      }
+
+      .card,
+      .state,
+      .footer-log {
+        padding: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="frame">
+    <section class="hero">
+      <h1>AImanager API Flow Visualizer</h1>
+      <p class="sub">A small interactive map of how this API works: create account, log in, use bearer token, chat, then inspect your history. Submit each form to see real request and response payloads.</p>
+      <div class="links">
+        <a class="link" href="/docs" target="_blank" rel="noreferrer">Open API Docs</a>
+        <a class="link" href="/openapi.yml" target="_blank" rel="noreferrer">View OpenAPI YAML</a>
+      </div>
+    </section>
+
+    <section class="flow" aria-label="API request flow">
+      <article class="step" data-step="register">
+        <div class="step-id">Step 1</div>
+        <h2 class="step-title">Register</h2>
+        <p class="step-desc">POST /auth/register creates a user.</p>
+      </article>
+      <article class="step" data-step="login">
+        <div class="step-id">Step 2</div>
+        <h2 class="step-title">Login</h2>
+        <p class="step-desc">POST /auth/login returns Bearer token.</p>
+      </article>
+      <article class="step" data-step="information">
+        <div class="step-id">Step 3</div>
+        <h2 class="step-title">Auth Info</h2>
+        <p class="step-desc">GET /auth/information with Authorization header.</p>
+      </article>
+      <article class="step" data-step="chat">
+        <div class="step-id">Step 4</div>
+        <h2 class="step-title">Chat</h2>
+        <p class="step-desc">POST /chat for AI response and chat_id.</p>
+      </article>
+      <article class="step" data-step="history">
+        <div class="step-id">Step 5</div>
+        <h2 class="step-title">History</h2>
+        <p class="step-desc">GET /history and GET /history/:id.</p>
+      </article>
+    </section>
+
+    <section class="state" aria-label="Runtime state">
+      <div class="pill">
+        <div class="pill-label">Current Token</div>
+        <div class="pill-value" id="token-view">No token</div>
+      </div>
+      <div class="pill">
+        <div class="pill-label">Current Chat Id</div>
+        <div class="pill-value" id="chat-view">No chat selected</div>
+      </div>
+      <div class="pill">
+        <div class="pill-label">Current User</div>
+        <div class="pill-value" id="user-view">Unknown</div>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>Register</h2>
+        <p>Create an account first.</p>
+        <form id="register-form">
+          <div class="row">
+            <label>Username
+              <input id="register-username" required placeholder="alex" />
+            </label>
+            <label>Email
+              <input id="register-email" type="email" required placeholder="alex@mail.com" />
+            </label>
+          </div>
+          <label>Password
+            <input id="register-password" type="password" required placeholder="********" />
+          </label>
+          <button type="submit">Send Register</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>POST /auth/register</span><span class="status" id="status-register">idle</span></div>
+          <pre id="log-register">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Login</h2>
+        <p>Get access token by username or email.</p>
+        <form id="login-form">
+          <label>Username or Email
+            <input id="login-identifier" required placeholder="alex or alex@mail.com" />
+          </label>
+          <label>Password
+            <input id="login-password" type="password" required placeholder="********" />
+          </label>
+          <button type="submit">Send Login</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>POST /auth/login</span><span class="status" id="status-login">idle</span></div>
+          <pre id="log-login">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Auth Information</h2>
+        <p>Use the token from login to call protected endpoint.</p>
+        <form id="info-form">
+          <button type="submit" class="secondary">Fetch Profile</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>GET /auth/information</span><span class="status" id="status-information">idle</span></div>
+          <pre id="log-information">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Chat</h2>
+        <p>Send a prompt to create or continue a conversation.</p>
+        <form id="chat-form">
+          <label>Model (optional)
+            <select id="chat-model">
+              <option value="">Auto (server default)</option>
+            </select>
+          </label>
+          <label>Message
+            <textarea id="chat-message" required placeholder="How does this API work?"></textarea>
+          </label>
+          <label>chat_id (optional)
+            <input id="chat-id" placeholder="Leave blank to start new chat" />
+          </label>
+          <button type="submit">Send Chat</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>POST /chat</span><span class="status" id="status-chat">idle</span></div>
+          <pre id="log-chat">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>History List + Search</h2>
+        <p>Inspect your recent chat headers.</p>
+        <form id="history-form">
+          <div class="row">
+            <button type="submit" data-kind="list">Fetch /history</button>
+            <button type="button" id="history-search-btn" class="secondary">Search Header</button>
+          </div>
+          <label>Search query
+            <input id="history-query" placeholder="keyword" />
+          </label>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>GET /history (+ /search)</span><span class="status" id="status-history">idle</span></div>
+          <pre id="log-history">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>History Details</h2>
+        <p>Load full turns for a selected chat id.</p>
+        <form id="history-detail-form">
+          <label>Chat id
+            <input id="history-detail-id" placeholder="Paste chat id" />
+          </label>
+          <button type="submit" class="secondary">Fetch /history/:id</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>GET /history/:id</span><span class="status" id="status-history-detail">idle</span></div>
+          <pre id="log-history-detail">No request yet.</pre>
+        </div>
+      </article>
+    </section>
+
+    <section class="footer-log">
+      <h3>Flow Timeline</h3>
+      <div class="timeline" id="timeline"></div>
+    </section>
+  </main>
+
+  <script>
+    const state = {
+      token: "",
+      chatId: "",
+      user: ""
+    };
+
+    const tokenView = document.getElementById("token-view");
+    const chatView = document.getElementById("chat-view");
+    const userView = document.getElementById("user-view");
+    const timeline = document.getElementById("timeline");
+
+    function shortText(value, maxLen){
+      if (!value) return "";
+      if (value.length <= maxLen) return value;
+      return value.slice(0, maxLen) + "...";
+    }
+
+    function updateState(){
+      tokenView.textContent = state.token ? shortText(state.token, 64) : "No token";
+      chatView.textContent = state.chatId || "No chat selected";
+      userView.textContent = state.user || "Unknown";
+    }
+
+    function markStep(step){
+      document.querySelectorAll(".step").forEach((node) => {
+        node.classList.toggle("active", node.dataset.step === step);
+      });
+    }
+
+    function pushEvent(message){
+      const block = document.createElement("div");
+      block.className = "event";
+      const stamp = new Date().toLocaleTimeString();
+      block.innerHTML = "<span>[" + stamp + "]</span>" + message;
+      timeline.prepend(block);
+    }
+
+    function writeLog(logId, statusId, req, res){
+      const pre = document.getElementById(logId);
+      const statusTag = document.getElementById(statusId);
+      pre.textContent = JSON.stringify({ request: req, response: res }, null, 2);
+
+      const ok = res && typeof res.status === "number" && res.status >= 200 && res.status < 300;
+      statusTag.textContent = res ? String(res.status) : "error";
+      statusTag.className = "status " + (ok ? "ok" : "bad");
+    }
+
+    async function callApi(path, method, body, auth){
+      const headers = {
+        "Content-Type": "application/json"
+      };
+      if (auth && state.token) headers.Authorization = "Bearer " + state.token;
+
+      const req = {
+        method: method,
+        path: path,
+        headers: headers,
+        body: body || null
+      };
+
+      try {
+        const response = await fetch(path, {
+          method,
+          headers,
+          body: body ? JSON.stringify(body) : undefined
+        });
+
+        const raw = await response.text();
+        let data;
+        try {
+          data = raw ? JSON.parse(raw) : null;
+        } catch {
+          data = raw;
+        }
+
+        return {
+          request: req,
+          response: {
+            status: response.status,
+            data
+          }
+        };
+      } catch (error){
+        return {
+          request: req,
+          response: {
+            status: 0,
+            data: {
+              error: error instanceof Error ? error.message : String(error)
+            }
+          }
+        };
+      }
+    }
+
+    async function loadModels(){
+      const select = document.getElementById("chat-model");
+      try {
+        const response = await fetch("/models");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!Array.isArray(data)) return;
+
+        data.forEach((model) => {
+          const key = typeof model === "string" ? model : model.id || model.name;
+          if (!key) return;
+          const option = document.createElement("option");
+          option.value = key;
+          option.textContent = key;
+          select.appendChild(option);
+        });
+      } catch {
+      }
+    }
+
+    document.getElementById("register-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("register");
+
+      const body = {
+        username: document.getElementById("register-username").value,
+        email: document.getElementById("register-email").value,
+        password: document.getElementById("register-password").value
+      };
+
+      const result = await callApi("/auth/register", "POST", body, false);
+      writeLog("log-register", "status-register", result.request, result.response);
+      pushEvent("Register called for <strong>" + body.username + "</strong>");
+    });
+
+    document.getElementById("login-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("login");
+
+      const identifier = document.getElementById("login-identifier").value;
+      const body = {
+        username: identifier,
+        password: document.getElementById("login-password").value
+      };
+
+      const result = await callApi("/auth/login", "POST", body, false);
+      writeLog("log-login", "status-login", result.request, result.response);
+
+      if (result.response.status === 200 && result.response.data && result.response.data.token){
+        state.token = result.response.data.token;
+        const user = result.response.data.user || {};
+        state.user = user.username || user.email || "User";
+        updateState();
+      }
+
+      pushEvent("Login attempted with identifier <strong>" + identifier + "</strong>");
+    });
+
+    document.getElementById("info-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("information");
+
+      const result = await callApi("/auth/information", "GET", null, true);
+      writeLog("log-information", "status-information", result.request, result.response);
+
+      if (result.response.status === 200 && result.response.data){
+        state.user = result.response.data.username || result.response.data.email || state.user;
+        updateState();
+      }
+
+      pushEvent("Protected profile endpoint requested");
+    });
+
+    document.getElementById("chat-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("chat");
+
+      const model = document.getElementById("chat-model").value;
+      const existingChatId = document.getElementById("chat-id").value.trim();
+
+      const body = {
+        message: document.getElementById("chat-message").value,
+        model: model || undefined,
+        chat_id: existingChatId || undefined
+      };
+
+      const result = await callApi("/chat", "POST", body, true);
+      writeLog("log-chat", "status-chat", result.request, result.response);
+
+      if (result.response.status === 200 && result.response.data && result.response.data.chat_id){
+        state.chatId = result.response.data.chat_id;
+        document.getElementById("chat-id").value = state.chatId;
+        document.getElementById("history-detail-id").value = state.chatId;
+        updateState();
+      }
+
+      pushEvent("Chat endpoint called with message length " + body.message.length);
+    });
+
+    document.getElementById("history-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("history");
+
+      const result = await callApi("/history", "GET", null, true);
+      writeLog("log-history", "status-history", result.request, result.response);
+
+      if (result.response.status === 200 && Array.isArray(result.response.data) && result.response.data[0]){
+        state.chatId = result.response.data[0].id;
+        document.getElementById("history-detail-id").value = state.chatId;
+        updateState();
+      }
+
+      pushEvent("History list requested");
+    });
+
+    document.getElementById("history-search-btn").addEventListener("click", async () => {
+      markStep("history");
+      const query = document.getElementById("history-query").value.trim();
+      const path = "/history/search?query=" + encodeURIComponent(query);
+      const result = await callApi(path, "GET", null, true);
+      writeLog("log-history", "status-history", result.request, result.response);
+      pushEvent("History search called with query <strong>" + (query || "(empty)") + "</strong>");
+    });
+
+    document.getElementById("history-detail-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      markStep("history");
+      const id = document.getElementById("history-detail-id").value.trim();
+      const path = "/history/" + encodeURIComponent(id);
+      const result = await callApi(path, "GET", null, true);
+      writeLog("log-history-detail", "status-history-detail", result.request, result.response);
+      pushEvent("History detail requested for chat <strong>" + (id || "(empty)") + "</strong>");
+    });
+
+    updateState();
+    loadModels();
+    pushEvent("Flow visualizer ready. Start from Register or Login.");
+  </script>
+</body>
+</html>

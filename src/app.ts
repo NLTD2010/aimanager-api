@@ -14,6 +14,8 @@ import type { AuthVars } from "./utils/auth";
 export function createApp(){
   const app = new Hono<{ Variables: AuthVars }>();
 
+  app.get("/", serveStatic({ path: "./public/flow.html" }));
+
   app.get("/health", (c) => c.json({ ok: true }));
 
   app.use("/openapi.yml", serveStatic({ path: "./public/openapi.yml" }));
