@@ -1,0 +1,102 @@
+
+
+Auth:
+POST /auth/login
+post
+- username: (can post username/mail)
+- password
+POST /auth/register
+- username: xxx
+- email: xxx
+- password
+
+GET /auth/information
+- Header: token
+Return:
+{
+    "username": "xxx",
+    "email": "xxx",
+    "last_login": "xxx",
+    "created_at": "xxx"
+}
+
+GET /history
+return:
+list of chat history, each item contains:
+{
+    "id": "xxx",
+    "header": "xxx",
+    "created_at": "xxx"
+}
+
+GET /history/{id}
+return:
+list of messages in chat {id} in sequence, each item contains:
+{
+    "id": "xxx", (message id like 1-2-3-...)
+    "question": "xxx",
+    "response": "xxx",
+    "created_at": "xxx"
+}
+
+GET /history/search?query=xxx
+return:
+list of chat history that match the query, each item contains:
+{
+    "id": "xxx", (chat uuid)
+    "header": "xxx",
+    "created_at": "xxx"
+}
+
+
+
+GET /models
+return:
+list of available models, each item contains:
+{
+    "model": "xxx",
+    "description": "xxx"
+}
+
+POST /chat 
+{
+    "message": "Explain dynamic programming",
+    "chat_id": "optional (null nếu chat mới)",
+    "model": "optional (vd: llama3)"
+}
+return:
+{
+    "response": "xxx",
+    "chat_id": "xxx (uuid)",
+    "created_at": "xxx"
+}
+
+
+
+
+Flow
+
+1. Rate limit base on ip + userid
+for chats: 5 requests per minute
+for auth actions: 3 requests per minute
+2. Check token (auth)
+3. Validate input (message không rỗng)
+4. Nếu có chat_id:
+    → load history từ DB
+   Ngược lại:
+    → tạo chat mới
+5. Build prompt từ history + message
+6. Gọi OpenAI API(ai.hackclub.com)
+7. Xử lý output
+8. Lưu vào DB:
+    - message (question + response)
+    - update chat header (nếu là câu đầu)
+9. Trả response
+
+
+Use:
+- Bun
+- Typescript
+- Hono
+- Post and GET endpoints: JSON format
+- Database: SQLite(offline)
