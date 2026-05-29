@@ -15,7 +15,7 @@ export async function callModel(model: string, messages: ChatMessage[]){
     body: JSON.stringify({
       model,
       messages,
-      temperature: 0.5
+      temperature: 0.6
     })
   });
 
