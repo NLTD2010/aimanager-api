@@ -181,11 +181,8 @@ authRoutes.post("/forgot-password", async (c) => {
       expiresAt
     });
 
-    const baseUrl = new URL(c.req.url).origin;
-    const resetLink = `${baseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`;
-
     try {
-      await sendResetPasswordEmail(email, resetLink);
+      await sendResetPasswordEmail(email, resetToken);
     } catch (error) {
       console.error("Failed to send reset password email", error);
     }
