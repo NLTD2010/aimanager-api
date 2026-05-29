@@ -56,6 +56,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: "alice"
+              email: "alice@example.com"
+              password: "s3cretP@ssw0rd"
       responses:
         '201':
           description: User created
@@ -99,6 +103,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/LoginRequest'
+            example:
+              email: "alice@example.com"
+              password: "s3cretP@ssw0rd"
       responses:
         '200':
           description: Login successful
@@ -171,6 +178,85 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request a password reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPasswordRequest'
+            example:
+              email: "alice@example.com"
+      responses:
+        '200':
+          description: Reset request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPasswordResponse'
+        '400':
+          description: Email missing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many auth requests
+          headers:
+            X-RateLimit-Remaining:
+              schema:
+                type: string
+            X-RateLimit-Reset:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with a reset token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+            example:
+              token: "b2f5ff47436671b6e533d8dc3614845d"
+              new_password: "n3wS3cretP@ss"
+      responses:
+        '200':
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPasswordResponse'
+        '400':
+          description: Invalid token or missing fields
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many auth requests
+          headers:
+            X-RateLimit-Remaining:
+              schema:
+                type: string
+            X-RateLimit-Reset:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
   /chat:
     post:
       tags: [Chat]
@@ -183,6 +269,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/ChatRequest'
+            example:
+              message: "Hello, what's the weather like today?"
+              chat_id: ""
+              model: "gpt-4-mini"
       responses:
         '200':
           description: Chat response
@@ -424,6 +514,49 @@ components:
           type: string
           format: date-time
       required: [username, email, last_login, created_at]
+
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+
+    ForgotPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        reset_token:
+          type: string
+          description: Only returned in non-production environments.
+        expires_at:
+          type: string
+          format: date-time
+          description: Only returned in non-production environments.
+      required: [message]
+
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token:
+          type: string
+        password:
+          type: string
+        new_password:
+          type: string
+      required: [token]
+      anyOf:
+        - required: [password]
+        - required: [new_password]
+
+    ResetPasswordResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
 
     ModelInfo:
       type: object

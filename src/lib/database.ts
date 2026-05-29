@@ -21,6 +21,15 @@ export type UserRecord = {
   last_login: string | null;
 };
 
+export type PasswordResetTokenRecord = {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  created_at: string;
+  expires_at: string;
+  used_at: string | null;
+};
+
 export type ChatRecord = {
   id: string;
   user_id: string;
@@ -59,6 +68,39 @@ export function findUserById(id: string){
 
 export function updateLastLogin(userId: string, lastLogin: string){
   getDatabase().query(`UPDATE users SET last_login = ? WHERE id = ?`).run(lastLogin, userId);
+}
+
+export function updateUserPassword(userId: string, passwordHash: string){
+  getDatabase().query(`UPDATE users SET password_hash = ? WHERE id = ?`).run(passwordHash, userId);
+}
+
+export function clearActivePasswordResetTokens(userId: string){
+  getDatabase().query(`DELETE FROM password_reset_tokens WHERE user_id = ? AND used_at IS NULL`).run(userId);
+}
+
+export function createPasswordResetToken(input: { id: string; userId: string; tokenHash: string; createdAt: string; expiresAt: string }){
+  getDatabase()
+    .query(`INSERT INTO password_reset_tokens (id, user_id, token_hash, created_at, expires_at) VALUES (?, ?, ?, ?, ?)`)
+    .run(input.id, input.userId, input.tokenHash, input.createdAt, input.expiresAt);
+}
+
+export function findActivePasswordResetToken(tokenHash: string, nowIso: string){
+  return getDatabase()
+    .query<PasswordResetTokenRecord, [string, string]>(
+      `
+      SELECT *
+      FROM password_reset_tokens
+      WHERE token_hash = ?
+      AND used_at IS NULL
+      AND expires_at > ?
+      LIMIT 1
+      `
+    )
+    .get(tokenHash, nowIso);
+}
+
+export function markPasswordResetTokensUsed(userId: string, usedAt: string){
+  getDatabase().query(`UPDATE password_reset_tokens SET used_at = ? WHERE user_id = ? AND used_at IS NULL`).run(usedAt, userId);
 }
 
 export function createChat(input: { id: string; userId: string; header: string; model: string; createdAt: string; updatedAt: string }){

@@ -11,7 +11,11 @@ export async function hashPassword(password: string){
 }
 
 export async function verifyPassword(password: string, stored: string){
-  return argon2Verify(stored, password);
+  try {
+    return await argon2Verify(stored, password);
+  } catch {
+    return false;
+  }
 }
 
 type JwtPrimitive = string | number | boolean | null;

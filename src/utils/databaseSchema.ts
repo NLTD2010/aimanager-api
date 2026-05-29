@@ -14,6 +14,16 @@ export function initializeDatabaseSchema(db: Database){
       last_login TEXT
     );
 
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
     CREATE TABLE IF NOT EXISTS chats (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
@@ -38,5 +48,7 @@ export function initializeDatabaseSchema(db: Database){
     CREATE INDEX IF NOT EXISTS idx_chats_user_created_at ON chats(user_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_chats_user_header ON chats(user_id, header);
     CREATE INDEX IF NOT EXISTS idx_turns_chat_index ON chat_turns(chat_id, turn_index);
+    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_user_created_at ON password_reset_tokens(user_id, created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_active ON password_reset_tokens(user_id, expires_at) WHERE used_at IS NULL;
   `);
 }

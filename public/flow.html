@@ -404,7 +404,7 @@
   <main class="frame">
     <section class="hero">
       <h1>AImanager API Flow Visualizer</h1>
-      <p class="sub">A small interactive map of how this API works: create account, log in, use bearer token, chat, then inspect your history. Submit each form to see real request and response payloads.</p>
+      <p class="sub">A small interactive map of how this API works: create account, log in, recover password, use bearer token, chat, then inspect history. Submit each form to see real request and response payloads.</p>
       <div class="links">
         <a class="link" href="/docs" target="_blank" rel="noreferrer">Open API Docs</a>
         <a class="link" href="/openapi.yml" target="_blank" rel="noreferrer">View OpenAPI YAML</a>
@@ -505,6 +505,39 @@
         <div class="log">
           <div class="log-head"><span>GET /auth/information</span><span class="status" id="status-information">idle</span></div>
           <pre id="log-information">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Forgot Password</h2>
+        <p>Request a reset link to be sent to your email.</p>
+        <form id="forgot-form">
+          <label>Email
+            <input id="forgot-email" type="email" required placeholder="alex@mail.com" />
+          </label>
+          <button type="submit">Send Forgot Password</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>POST /auth/forgot-password</span><span class="status" id="status-forgot">idle</span></div>
+          <pre id="log-forgot">No request yet.</pre>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>Reset Password</h2>
+        <p>Use token from reset email to set a new password.</p>
+        <form id="reset-form">
+          <label>Token
+            <input id="reset-token" required placeholder="Paste reset token" />
+          </label>
+          <label>New password
+            <input id="reset-password" type="password" required placeholder="********" />
+          </label>
+          <button type="submit" class="secondary">Send Reset Password</button>
+        </form>
+        <div class="log">
+          <div class="log-head"><span>POST /auth/reset-password</span><span class="status" id="status-reset">idle</span></div>
+          <pre id="log-reset">No request yet.</pre>
         </div>
       </article>
 
@@ -740,6 +773,37 @@
       pushEvent("Protected profile endpoint requested");
     });
 
+    document.getElementById("forgot-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const email = document.getElementById("forgot-email").value.trim();
+
+      const body = { email };
+      const result = await callApi("/auth/forgot-password", "POST", body, false);
+      writeLog("log-forgot", "status-forgot", result.request, result.response);
+
+      pushEvent("Forgot password requested for <strong>" + (email || "(empty)") + "</strong>");
+    });
+
+    document.getElementById("reset-form").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const token = document.getElementById("reset-token").value.trim();
+      const newPassword = document.getElementById("reset-password").value;
+
+      const body = {
+        token,
+        new_password: newPassword
+      };
+
+      const result = await callApi("/auth/reset-password", "POST", body, false);
+      writeLog("log-reset", "status-reset", result.request, result.response);
+
+      if (result.response.status === 200){
+        document.getElementById("reset-token").value = "";
+      }
+
+      pushEvent("Reset password submitted with token <strong>" + (token ? "provided" : "missing") + "</strong>");
+    });
+
     document.getElementById("chat-form").addEventListener("submit", async (event) => {
       event.preventDefault();
       markStep("chat");
@@ -801,9 +865,16 @@
       pushEvent("History detail requested for chat <strong>" + (id || "(empty)") + "</strong>");
     });
 
+    const initialToken = new URLSearchParams(window.location.search).get("token");
+    if (initialToken){
+      const tokenInput = document.getElementById("reset-token");
+      if (tokenInput) tokenInput.value = initialToken;
+      pushEvent("Reset token detected from URL query and pre-filled.");
+    }
+
     updateState();
     loadModels();
-    pushEvent("Flow visualizer ready. Start from Register or Login.");
+    pushEvent("Flow visualizer ready. Start from Register, Login, or Forgot Password.");
   </script>
 </body>
 </html>
